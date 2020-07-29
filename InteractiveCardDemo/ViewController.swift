@@ -59,7 +59,12 @@ class ViewController: UIViewController {
     }
     
     @objc func handleCardTap(recognizer: UIGestureRecognizer) {
-        
+        switch recognizer.state {
+        case .ended:
+            transitionIfNeeded(state: nextState, duration: 0.9)
+        default:
+            <#code#>
+        }
     }
     
     @objc func handleCardPan(recognize: UIPanGestureRecognizer) {
@@ -69,7 +74,10 @@ class ViewController: UIViewController {
             startInterativeTransition(state: nextState, duration: 0.9)
         case .changed:
             // print("changed")
-            updateInteractiveTransition(fractionCompleted: 0)
+            let transilation = recognize.translation(in: self.cardViewController.handleArea)
+            var fractionComplete = transilation.y / cardViewheight
+            fractionComplete = cardVisible ? fractionComplete : -fractionComplete
+            updateInteractiveTransition(fractionCompleted: fractionComplete)
         case .ended:
             //  print("ended")
             continueInteractiveTransition()
@@ -99,6 +107,29 @@ class ViewController: UIViewController {
             
             frameAnimator.startAnimation()
             runningAnimators.append(frameAnimator)
+            
+            let cornerRadiusAnimator = UIViewPropertyAnimator(duration: duration, curve: .linear) {
+                switch state {
+                case .collapsed:
+                    self.cardViewController.view.layer.cornerRadius = 0
+                case .expand:
+                    self.cardViewController.view.layer.cornerRadius = 12
+                }
+            }
+            
+            cornerRadiusAnimator.startAnimation()
+            runningAnimators.append(cornerRadiusAnimator)
+            
+            let blurAnimator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1) {
+                switch state {
+                case .collapsed:
+                    self.visualEffectView.effect = nil
+                case .expand:
+                    self.visualEffectView.effect = UIBlurEffect(style: .dark)
+                }
+            }
+            blurAnimator.startAnimation()
+            runningAnimators.removeAll()
         }
     }
     
