@@ -28,7 +28,7 @@ class ViewController: UIViewController {
     
     var runningAnimators = [UIViewPropertyAnimator]()
     var animatorProgressWhenInterupted: CGFloat = 0
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .link
@@ -51,8 +51,81 @@ class ViewController: UIViewController {
         cardViewController.view.frame = CGRect(x: 0, y: self.view.frame.height - cardHandleAreaHeight, width: self.view.bounds.width, height: cardViewheight)
         cardViewController.view.clipsToBounds = true
         
+        let tapGestureRecognizer = UIGestureRecognizer(target: self, action: #selector(ViewController.handleCardTap(recognizer:)))
+        let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(ViewController.handleCardPan(recognize:)))
+        cardViewController.handleArea.addGestureRecognizer(tapGestureRecognizer)
+        cardViewController.handleArea.addGestureRecognizer(panGestureRecognizer)
+        
     }
-
-
+    
+    @objc func handleCardTap(recognizer: UIGestureRecognizer) {
+        
+    }
+    
+    @objc func handleCardPan(recognize: UIPanGestureRecognizer) {
+        switch recognize.state {
+        case .began:
+            // print("began")
+            startInterativeTransition(state: nextState, duration: 0.9)
+        case .changed:
+            // print("changed")
+            updateInteractiveTransition(fractionCompleted: 0)
+        case .ended:
+            //  print("ended")
+            continueInteractiveTransition()
+        default:
+            print("default")
+        }
+    }
+    
+    func transitionIfNeeded(state: CardState, duration: TimeInterval) {
+        if runningAnimators.isEmpty {
+            let frameAnimator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1) {
+                switch state {
+                case .collapsed:
+                    self.cardViewController.view.frame.origin.y = self.view.frame.height - self.cardHandleAreaHeight
+                case .expand:
+                    self.cardViewController.view.frame.origin.y = self.view.frame.height - self.cardViewheight
+                }
+            }
+            
+            frameAnimator.addCompletion {
+                _ in
+                
+                self.cardVisible = !self.cardVisible
+                self.runningAnimators.removeAll()
+                
+            }
+            
+            frameAnimator.startAnimation()
+            runningAnimators.append(frameAnimator)
+        }
+    }
+    
+    func startInterativeTransition(state: CardState, duration: TimeInterval) {
+        if runningAnimators.isEmpty {
+            // run animators
+            transitionIfNeeded(state: state, duration: duration)
+        }
+        
+        for animator in runningAnimators {
+            animator.pauseAnimation()
+            animatorProgressWhenInterupted = animator.fractionComplete
+        }
+    }
+    
+    func updateInteractiveTransition(fractionCompleted: CGFloat) {
+        for animator in runningAnimators {
+            animator.fractionComplete = fractionCompleted + animatorProgressWhenInterupted
+        }
+    }
+    
+    func continueInteractiveTransition() {
+        for animator in runningAnimators {
+            animator.continueAnimation(withTimingParameters: nil, durationFactor: 0)
+        }
+    }
+    
+    
 }
 
